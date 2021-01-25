@@ -1,4 +1,4 @@
-// require Position constructor
+const Position = require('../lib/position');
 
 describe('Tests for new Position constructor', () => {
     test('Can instantiate new Position instance', () => {

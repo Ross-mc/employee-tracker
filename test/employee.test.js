@@ -1,4 +1,4 @@
-// require employee constructor
+const Employee = require('../lib/employee');
 
 describe('Tests for new employee constructor', () => {
     test('Can instantiate new employee instance', () => {
