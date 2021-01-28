@@ -1,5 +1,6 @@
 const inquirer = require('inquirer');
-const { displayEmployees, getManagers, getDepartments, getRoles } = require('./lib/query');
+const { displayEmployees, getManagers, getDepartments, getRoles, addDepartment } = require('./lib/query');
+const Department = require('./lib/department');
 
 const initialPrompt = {
     type: 'list',
@@ -12,6 +13,7 @@ const initialPrompt = {
         'Add employee',
         'Update existing employee',
         'Delete information',
+        'View Departmental Budget',
         'Exit'
     ] //choices can be improved -- read inquirer docs
 };
@@ -35,6 +37,19 @@ const employeeBySelectionPrompts = (selection) => {
         message: `Which ${selection} would you like to search by?`,
         choices: []
     }
+};
+
+const userAddDepartment = async () => {
+    await inquirer
+    .prompt({
+        type: 'input',
+        name: 'department',
+        message: 'Please enter the name of the new department'
+    })
+    .then(async res => {
+        await addDepartment(res.department);
+        main();
+    });
 }
 
 
@@ -109,16 +124,22 @@ const main = () => {
         if (res.option === initialPrompt.choices[0]){
             userViewEmployees();
         };
+        if (res.option === initialPrompt.choices[1]){
+            userAddDepartment();
+        }
+
 
         if (res.option === 'Exit'){
             process.exit()
-        }
+        };
+
+
     });
 
 
     //add hashmap logic
 };
-
+console.log('Welcome to the Employee Tracking Database')
 main();
 
 module.exports = main;
