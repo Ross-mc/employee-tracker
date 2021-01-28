@@ -1,5 +1,5 @@
 const inquirer = require('inquirer');
-const { displayEmployees, getManagers } = require('./lib/query');
+const { displayEmployees, getManagers, getDepartments } = require('./lib/query');
 
 const initialPrompt = {
     type: 'list',
@@ -33,6 +33,13 @@ const managerSelectionPrompts = {
     name: 'manager',
     message: 'Which manager would you like to search by?',
     choices: []
+};
+
+const departmentSelectionPrompts = {
+    type: 'list',
+    name: 'department',
+    message: 'Which department would you like to search by?',
+    choices: []
 }
 
 const userViewEmployees = async () => {
@@ -64,6 +71,18 @@ const userViewEmployees = async () => {
             const { id } = managerToFind[0];
             const result = await displayEmployees('manager', id);
             console.log(result)
+            main();
+        })
+    };
+
+    if (response === viewEmployeePrompts.choices[2]){
+        const departments = await getDepartments();
+        departmentSelectionPrompts.choices = departments.map(department => department.department_name);
+        inquirer
+        .prompt(departmentSelectionPrompts)
+        .then(async res => {
+            const result = await displayEmployees('department', res.department);
+            console.log(result);
             main();
         })
     }
