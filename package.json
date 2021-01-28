@@ -4,7 +4,8 @@
   "description": "A node.js application for managing a team of employees",
   "main": "app.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "start": "node index"
   },
   "author": "Ross McIntyre",
   "license": "ISC",
