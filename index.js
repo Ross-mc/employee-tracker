@@ -3,52 +3,16 @@ const cTable = require('console.table');
 
 const DatabaseQuery = require('./lib/query');
 const Department = require('./lib/department');
-const Position = require('./lib/position')
+const Position = require('./lib/position');
+const Prompts = require('./lib/prompts');
 
-const initialPrompt = {
-    type: 'list',
-    name: 'option',
-    message: 'What would you like to do?',
-    choices: [
-        'View employees',
-        'Add department',
-        'Add position',
-        'Add employee',
-        'Update existing employee',
-        'Delete information',
-        'View Departmental Budget',
-        'Exit'
-    ] //choices can be improved -- read inquirer docs
-};
+console.log(Prompts.initialPrompt)
 
-const viewEmployeePrompts = {
-    type: 'list',
-    name: 'option',
-    message: 'How would you like to view employees?',
-    choices: [
-        'View all employees',
-        'View all employees by manager',
-        'View all employees by department',
-        'View all employees by role',
-    ]
-};
 
-const employeeBySelectionPrompts = (selection) => {
-    return {
-        type: 'list',
-        name: `${selection}`,
-        message: `Which ${selection} would you like to search by?`,
-        choices: []
-    }
-};
 
 const userAddDepartment = async () => {
     await inquirer
-    .prompt({
-        type: 'input',
-        name: 'department',
-        message: 'Please enter the name of the new department'
-    })
+    .prompt(Prompts.newDepartmentPrompt)
     .then(async res => {
         const newDepartment = await DatabaseQuery.addDepartment(res.department);
         if (newDepartment.affectedRows > 0){
@@ -63,29 +27,12 @@ const userAddDepartment = async () => {
 const userAddPosition = async () => {
     const departments = await DatabaseQuery.getDepartments();
     await inquirer
-    .prompt([
-        {
-            type: 'input',
-            name: 'title',
-            message: 'Please enter the name of the new position'
-        },
-        {
-            type: 'input',
-            name: 'salary',
-            message: 'Please enter the salary of the new position'
-        },
-        {
-            type: 'list',
-            name: 'department',
-            message: 'Please choose which department the position belongs to: ',
-            choices: departments.map(department => department.department_name)
-        }
-    ])
+    .prompt(Prompts.newPositionPrompts(departments))
     .then(async res => {
         let { title, salary, department } = res;
         salary = Number(salary);
-        const departmentToFind = departments.filter(departmentObj => departmentObj.department_name === department);
-        const departmentId = departmentToFind[0].id;
+        const departmentToFind = departments.find(departmentObj => departmentObj.department_name === department);
+        const departmentId = departmentToFind.id;
         const position = new Position(title, salary, departmentId);
         const newPosition = await DatabaseQuery.addPosition(position);
         if (newPosition.affectedRows > 0){
@@ -103,7 +50,7 @@ const userAddPosition = async () => {
 const userViewEmployees = async () => {
     let response = '';
     await inquirer
-    .prompt(viewEmployeePrompts)
+    .prompt(Prompts.viewEmployeePrompts)
     .then(res => {
         response = res.option
     });
@@ -119,26 +66,26 @@ const userViewEmployees = async () => {
         };
     };
 
-    if (response === viewEmployeePrompts.choices[1]){
+    if (response === Prompts.viewEmployeePrompts.choices[1]){
         const managers = await DatabaseQuery.getManagers();
-        const managerSelectionPrompts = employeeBySelectionPrompts('manager')
+        const managerSelectionPrompts = Prompts.employeeBySelectionPrompts('manager')
         managerSelectionPrompts.choices = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
         await inquirer
         .prompt(managerSelectionPrompts)
         .then(async res => {
             const firstName = res.manager.split(' ')[0];
             const lastName = res.manager.split(' ')[1];
-            const managerToFind = managers.filter(manager => manager.first_name === firstName && manager.last_name === lastName);
-            const { id } = managerToFind[0];
+            const managerToFind = managers.find(manager => manager.first_name === firstName && manager.last_name === lastName);
+            const { id } = managerToFind;
             const result = await DatabaseQuery.displayEmployees('manager', id);
             const table = cTable.getTable(result);
             console.log(table)
         })
     };
 
-    if (response === viewEmployeePrompts.choices[2]){
+    if (response === Prompts.viewEmployeePrompts.choices[2]){
         const departments = await DatabaseQuery.getDepartments();
-        const departmentSelectionPrompts = employeeBySelectionPrompts('department')
+        const departmentSelectionPrompts = Prompts.employeeBySelectionPrompts('department')
         departmentSelectionPrompts.choices = departments.map(department => department.department_name);
         await inquirer
         .prompt(departmentSelectionPrompts)
@@ -149,9 +96,9 @@ const userViewEmployees = async () => {
         })
     }
 
-    if (response === viewEmployeePrompts.choices[3]){
+    if (response === Prompts.viewEmployeePrompts.choices[3]){
         const roles = await DatabaseQuery.getRoles();
-        const roleSelectionPrompts = employeeBySelectionPrompts('role');
+        const roleSelectionPrompts = Prompts.employeeBySelectionPrompts('role');
         roleSelectionPrompts.choices = roles.map(role => role.title);
         await inquirer
         .prompt(roleSelectionPrompts)
@@ -169,16 +116,16 @@ const userViewEmployees = async () => {
 
 const main = () => {
     inquirer
-    .prompt(initialPrompt)
+    .prompt(Prompts.initialPrompt)
     .then(res => {
-        if (res.option === initialPrompt.choices[0]){
+        if (res.option === Prompts.initialPrompt.choices[0]){
             userViewEmployees();
         };
-        if (res.option === initialPrompt.choices[1]){
+        if (res.option === Prompts.initialPrompt.choices[1]){
             userAddDepartment();
         };
 
-        if (res.option === initialPrompt.choices[2]){
+        if (res.option === Prompts.initialPrompt.choices[2]){
             userAddPosition();
         }
 
