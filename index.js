@@ -1,6 +1,8 @@
 const inquirer = require('inquirer');
-const { displayEmployees, getManagers, getDepartments, getRoles, addDepartment } = require('./lib/query');
+
+const { displayEmployees, getManagers, getDepartments, getRoles, addDepartment, addPosition } = require('./lib/query');
 const Department = require('./lib/department');
+const Position = require('./lib/position')
 
 const initialPrompt = {
     type: 'list',
@@ -50,6 +52,39 @@ const userAddDepartment = async () => {
         await addDepartment(res.department);
         main();
     });
+};
+
+const userAddPosition = async () => {
+    const departments = await getDepartments();
+    await inquirer
+    .prompt([
+        {
+            type: 'input',
+            name: 'title',
+            message: 'Please enter the name of the new position'
+        },
+        {
+            type: 'input',
+            name: 'salary',
+            message: 'Please enter the salary of the new position'
+        },
+        {
+            type: 'list',
+            name: 'department',
+            message: 'Please choose which department the position belongs to: ',
+            choices: departments.map(department => department.department_name)
+        }
+    ])
+    .then(async res => {
+        let { title, salary, department } = res;
+        salary = Number(salary);
+        const departmentToFind = departments.filter(departmentObj => departmentObj.department_name === department);
+        const departmentId = departmentToFind[0].id;
+        const position = new Position(title, salary, departmentId);
+        console.log(position)
+        await addPosition(position);
+        main();
+    })
 }
 
 
@@ -65,7 +100,6 @@ const userViewEmployees = async () => {
     if (response === 'View all employees') {
         try {
             console.log(await displayEmployees('all'));
-            main() 
         } catch(e){
             console.log(e)
         };
@@ -75,7 +109,7 @@ const userViewEmployees = async () => {
         const managers = await getManagers();
         const managerSelectionPrompts = employeeBySelectionPrompts('manager')
         managerSelectionPrompts.choices = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
-        inquirer
+        await inquirer
         .prompt(managerSelectionPrompts)
         .then(async res => {
             const firstName = res.manager.split(' ')[0];
@@ -84,7 +118,6 @@ const userViewEmployees = async () => {
             const { id } = managerToFind[0];
             const result = await displayEmployees('manager', id);
             console.log(result)
-            main();
         })
     };
 
@@ -92,12 +125,11 @@ const userViewEmployees = async () => {
         const departments = await getDepartments();
         const departmentSelectionPrompts = employeeBySelectionPrompts('department')
         departmentSelectionPrompts.choices = departments.map(department => department.department_name);
-        inquirer
+        await inquirer
         .prompt(departmentSelectionPrompts)
         .then(async res => {
             const result = await displayEmployees('department', res.department);
             console.log(result);
-            main();
         })
     }
 
@@ -105,14 +137,15 @@ const userViewEmployees = async () => {
         const roles = await getRoles();
         const roleSelectionPrompts = employeeBySelectionPrompts('role');
         roleSelectionPrompts.choices = roles.map(role => role.title);
-        inquirer
+        await inquirer
         .prompt(roleSelectionPrompts)
         .then(async res => {
             const result = await displayEmployees('role', res.role);
             console.log(result)
-            main();
         })
     }
+
+    main();
 
 }
 
@@ -126,6 +159,10 @@ const main = () => {
         };
         if (res.option === initialPrompt.choices[1]){
             userAddDepartment();
+        };
+
+        if (res.option === initialPrompt.choices[2]){
+            userAddPosition();
         }
 
 
