@@ -1,6 +1,7 @@
 const inquirer = require('inquirer');
+const cTable = require('console.table');
 
-const { displayEmployees, getManagers, getDepartments, getRoles, addDepartment, addPosition } = require('./lib/query');
+const DatabaseQuery = require('./lib/query');
 const Department = require('./lib/department');
 const Position = require('./lib/position')
 
@@ -49,13 +50,18 @@ const userAddDepartment = async () => {
         message: 'Please enter the name of the new department'
     })
     .then(async res => {
-        await addDepartment(res.department);
+        const newDepartment = await DatabaseQuery.addDepartment(res.department);
+        if (newDepartment.affectedRows > 0){
+            console.log(`${title} successfully added!`)
+        } else {
+            throw new Error(newDepartment.message);
+        };
         main();
     });
 };
 
 const userAddPosition = async () => {
-    const departments = await getDepartments();
+    const departments = await DatabaseQuery.getDepartments();
     await inquirer
     .prompt([
         {
@@ -81,8 +87,13 @@ const userAddPosition = async () => {
         const departmentToFind = departments.filter(departmentObj => departmentObj.department_name === department);
         const departmentId = departmentToFind[0].id;
         const position = new Position(title, salary, departmentId);
-        console.log(position)
-        await addPosition(position);
+        const newPosition = await DatabaseQuery.addPosition(position);
+        if (newPosition.affectedRows > 0){
+            console.log(`${title} successfully added!`)
+        } else {
+            throw new Error(newPosition.message);
+        };
+
         main();
     })
 }
@@ -99,14 +110,17 @@ const userViewEmployees = async () => {
     //to do: add hashmap logic, further program flow through the various queries ***improve choices
     if (response === 'View all employees') {
         try {
-            console.log(await displayEmployees('all'));
+            const allEmployees = await DatabaseQuery.displayEmployees('all');
+            const table = cTable.getTable(allEmployees);
+            console.log(table)
+            // console.log(await displayEmployees('all'));
         } catch(e){
             console.log(e)
         };
     };
 
     if (response === viewEmployeePrompts.choices[1]){
-        const managers = await getManagers();
+        const managers = await DatabaseQuery.getManagers();
         const managerSelectionPrompts = employeeBySelectionPrompts('manager')
         managerSelectionPrompts.choices = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
         await inquirer
@@ -116,32 +130,35 @@ const userViewEmployees = async () => {
             const lastName = res.manager.split(' ')[1];
             const managerToFind = managers.filter(manager => manager.first_name === firstName && manager.last_name === lastName);
             const { id } = managerToFind[0];
-            const result = await displayEmployees('manager', id);
-            console.log(result)
+            const result = await DatabaseQuery.displayEmployees('manager', id);
+            const table = cTable.getTable(result);
+            console.log(table)
         })
     };
 
     if (response === viewEmployeePrompts.choices[2]){
-        const departments = await getDepartments();
+        const departments = await DatabaseQuery.getDepartments();
         const departmentSelectionPrompts = employeeBySelectionPrompts('department')
         departmentSelectionPrompts.choices = departments.map(department => department.department_name);
         await inquirer
         .prompt(departmentSelectionPrompts)
         .then(async res => {
-            const result = await displayEmployees('department', res.department);
-            console.log(result);
+            const result = await DatabaseQuery.displayEmployees('department', res.department);
+            const table = cTable.getTable(result);
+            console.log(table)
         })
     }
 
     if (response === viewEmployeePrompts.choices[3]){
-        const roles = await getRoles();
+        const roles = await DatabaseQuery.getRoles();
         const roleSelectionPrompts = employeeBySelectionPrompts('role');
         roleSelectionPrompts.choices = roles.map(role => role.title);
         await inquirer
         .prompt(roleSelectionPrompts)
         .then(async res => {
-            const result = await displayEmployees('role', res.role);
-            console.log(result)
+            const result = await DatabaseQuery.displayEmployees('role', res.role);
+            const table = cTable.getTable(result);
+            console.log(table)
         })
     }
 
