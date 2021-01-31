@@ -40,8 +40,9 @@ const userAddDepartment = async () => {
 
 const userAddPosition = async () => {
     const departments = await DatabaseQuery.getDepartments();
+    const departmentNames = departments.map(department => department.department_name)
     await inquirer
-    .prompt(Prompts.newPositionPrompts(departments))
+    .prompt(Prompts.newPositionPrompts(departmentNames))
     .then(async res => {
         let { title, salary, department } = res;
         salary = Number(salary);
