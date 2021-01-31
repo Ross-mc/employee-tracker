@@ -7,6 +7,27 @@ const Position = require('./lib/position');
 const Employee = require('./lib/employee')
 const Prompts = require('./lib/prompts');
 const { updateEmployeePrompts, getRolesandManagersForPrompts } = require('./lib/prompts');
+const { getEmployees } = require('./lib/query');
+
+
+
+const viewBudget = async () => {
+    const departments = await DatabaseQuery.getDepartments();
+    const prompts = Prompts.employeeBySelectionPrompts('department');
+    prompts.choices = departments.map(department => department.department_name);
+    await inquirer
+    .prompt(prompts)
+    .then(async res => {
+        const employeesByDepartment = await getEmployees('department', res.department);
+        const totalSalary = employeesByDepartment.reduce(
+            (acc, { salary }) =>
+            acc + salary,
+            0);
+        console.log(`The total salary for ${res.department} is £${totalSalary}`);
+        main();
+    });
+    
+}
 
 
 
@@ -76,7 +97,7 @@ const userAddEmployee = async () => {
 };
 
 const userUpdateEmployee = async () => {
-    const employees = await DatabaseQuery.displayEmployees('all');
+    const employees = await DatabaseQuery.getEmployees('all');
     const employeeNamesArr = employees.map(employee => `${employee.first_name} ${employee.last_name}`);
     updateEmployeePrompts[0].choices = employeeNamesArr;
     await inquirer
@@ -150,7 +171,7 @@ const deleteInformation = async () => {
             table = 'Position'
             choices = roleTitles;
         } else {
-            var employees = await DatabaseQuery.displayEmployees('all');
+            var employees = await DatabaseQuery.getEmployees('all');
             choices = employees.map(employee => `${employee.first_name} ${employee.last_name}`);
         };
 
@@ -199,7 +220,7 @@ const deleteInformation = async () => {
 
 const viewAllEmployees = async () => {
     try {
-        const allEmployees = await DatabaseQuery.displayEmployees('all');
+        const allEmployees = await DatabaseQuery.getEmployees('all');
         const table = cTable.getTable(allEmployees);
         console.log(table)
     } catch(e){
@@ -218,7 +239,7 @@ const viewEmployeesByManager = async () => {
         const lastName = res.manager.split(' ')[1];
         const managerToFind = managers.find(manager => manager.first_name === firstName && manager.last_name === lastName);
         const { id } = managerToFind;
-        const result = await DatabaseQuery.displayEmployees('manager', id);
+        const result = await DatabaseQuery.getEmployees('manager', id);
         const table = cTable.getTable(result);
         console.log(table)
     })
@@ -231,7 +252,7 @@ const viewEmployeesByDepartment = async () => {
     await inquirer
     .prompt(departmentSelectionPrompts)
     .then(async res => {
-        const result = await DatabaseQuery.displayEmployees('department', res.department);
+        const result = await DatabaseQuery.getEmployees('department', res.department);
         const table = cTable.getTable(result);
         console.log(table)
     })
@@ -244,7 +265,7 @@ const viewEmployeesByRole = async () => {
     await inquirer
     .prompt(roleSelectionPrompts)
     .then(async res => {
-        const result = await DatabaseQuery.displayEmployees('role', res.role);
+        const result = await DatabaseQuery.getEmployees('role', res.role);
         const table = cTable.getTable(result);
         console.log(table)
     })
@@ -269,7 +290,7 @@ const userViewEmployees = async () => {
     await nextProcess();
     main();
 
-}
+};
 
 const initialPromptHash = {
     viewEmployees: userViewEmployees,
@@ -278,7 +299,7 @@ const initialPromptHash = {
     addEmployee: userAddEmployee,
     updateEmployee: userUpdateEmployee,
     deleteInformation: deleteInformation,
-    // viewBudget: viewBudget,
+    viewBudget: viewBudget,
     exit: process.exit
 }
 
@@ -292,7 +313,7 @@ const main = () => {
     });
 
 };
+
+
 console.log('Welcome to the Employee Tracking Database')
 main();
-
-module.exports = main;
