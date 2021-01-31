@@ -6,7 +6,7 @@ const Department = require('./lib/department');
 const Position = require('./lib/position');
 const Employee = require('./lib/employee')
 const Prompts = require('./lib/prompts');
-const { updateEmployeePrompts } = require('./lib/prompts');
+const { updateEmployeePrompts, getRolesandManagersForPrompts } = require('./lib/prompts');
 
 
 
@@ -112,7 +112,7 @@ const userUpdateEmployee = async () => {
             .prompt({
                 name: 'name',
                 type: 'input',
-                message: 'Please enter then new name: '
+                message: 'Please enter the new name: '
             })
             .then(res => {
                 newValue = res.name;
@@ -130,8 +130,60 @@ const userUpdateEmployee = async () => {
     });
 
     main();
+};
 
 
+
+const deleteInformation = async () => {
+    let table;
+    let value;
+    await inquirer
+    .prompt(Prompts.whichTableToDeletePrompt)
+    .then(async res => {
+        table = res.table;
+        let choices;
+        if (res.table === 'Department'){
+            var departments = await DatabaseQuery.getDepartments();
+            choices = departments.map(department => department.department_name);
+        } else if (res.table === 'Role'){
+            var { roles, roleTitles } = await getRolesandManagersForPrompts();
+            table = 'Position'
+            choices = roleTitles;
+        } else {
+            var employees = await DatabaseQuery.displayEmployees('all');
+            choices = employees.map(employee => `${employee.first_name} ${employee.last_name}`);
+        };
+
+        await inquirer
+        .prompt({
+            type: 'list',
+            name: 'row',
+            message: `Which ${res.table} do you want to delete?`,
+            choices
+        })
+        .then(async res => {
+            var itemToDelete
+            if (table === 'Department'){
+                itemToDelete = departments.find(department => department.department_name === res.row)
+            } else if (table === 'Position'){
+                itemToDelete = roles.find(role => role.title === res.row)
+            } else {
+                const firstName = res.row.split(" ")[0];
+                const lastName = res.row.split(" ")[1];
+                itemToDelete = employees.find(employee => employee.first_name === firstName && employee.last_name === lastName)
+            };
+            value = itemToDelete.id
+        });
+
+        const deleted = await DatabaseQuery.deleteRow(table, value);
+        if (deleted.affectedRows > 0){
+            console.log(`Item successfully deleted!`)
+        } else {
+            throw new Error(deleted.message);
+        };
+    });
+
+    main();
 }
 
 const viewAllEmployees = async () => {
@@ -214,7 +266,7 @@ const initialPromptHash = {
     addPosition: userAddPosition,
     addEmployee: userAddEmployee,
     updateEmployee: userUpdateEmployee,
-    // deleteInformation: deleteInformation,
+    deleteInformation: deleteInformation,
     // viewBudget: viewBudget,
     exit: process.exit
 }
@@ -228,8 +280,6 @@ const main = () => {
         nextProcess();
     });
 
-
-    //add hashmap logic
 };
 console.log('Welcome to the Employee Tracking Database')
 main();
