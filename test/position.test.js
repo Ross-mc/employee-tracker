@@ -21,6 +21,6 @@ describe('Can set properties via constuctor function', () => {
     test('Can set departmentId property', () => {
         const departmentId = 3;
         const p = new Position("Front End Developer", 25000, 3);
-        expect(p.departmentId).toBe(3)
+        expect(p.department_id).toBe(3)
     });
 })
