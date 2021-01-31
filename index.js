@@ -6,6 +6,7 @@ const Department = require('./lib/department');
 const Position = require('./lib/position');
 const Employee = require('./lib/employee')
 const Prompts = require('./lib/prompts');
+const { updateEmployeePrompts } = require('./lib/prompts');
 
 
 
@@ -45,10 +46,7 @@ const userAddPosition = async () => {
 };
 
 const userAddEmployee = async () => {
-    const roles = await DatabaseQuery.getRoles();
-    const roleTitles = roles.map(role => role.title);
-    const managers = await DatabaseQuery.getManagers();
-    const managerNames = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
+    const { roles, managers, roleTitles, managerNames } = await Prompts.getRolesandManagersForPrompts();
     await inquirer
     .prompt(Prompts.newEmployeePrompts(roleTitles, managerNames))
     .then(async res => {
@@ -75,6 +73,65 @@ const userAddEmployee = async () => {
 
         main();
     })
+};
+
+const userUpdateEmployee = async () => {
+    const employees = await DatabaseQuery.displayEmployees('all');
+    const employeeNamesArr = employees.map(employee => `${employee.first_name} ${employee.last_name}`);
+    updateEmployeePrompts[0].choices = employeeNamesArr;
+    await inquirer
+    .prompt(updateEmployeePrompts)
+    .then(async res => {
+        const firstName = res.employee.split(' ')[0];
+        const lastName = res.employee.split(' ')[1];
+        const employeeToFind = employees.find(employee => employee.first_name === firstName && employee.last_name === lastName);
+
+        // constructing the data for submitting the update query
+        const employeeId = employeeToFind.id;
+        const columnToUpdate = res.dataToUpdate;
+        let newValue;
+
+
+        if (res.dataToUpdate === 'role_id' || res.dataToUpdate === 'manager_id'){
+            const { roles, managers, roleTitles, managerNames } = await Prompts.getRolesandManagersForPrompts();
+            const selectionStr = res.dataToUpdate.replace('_id', '')
+            await inquirer
+            .prompt({
+                name: `${selectionStr}`,
+                type: 'list',
+                message: `Which ${selectionStr} will this employee have?`,
+                choices: res.dataToUpdate === 'role_id'
+                        ? roleTitles
+                        : managerNames
+            })
+            .then(res => {
+                newValue = res[`${selectionStr}`]
+            })
+        } else{
+            await inquirer
+            .prompt({
+                name: 'name',
+                type: 'input',
+                message: 'Please enter then new name: '
+            })
+            .then(res => {
+                newValue = res.name;
+            })
+        };
+
+
+        const employeeUpdate = await DatabaseQuery.updateEmployee(columnToUpdate, newValue, employeeId);
+
+        if (employeeUpdate.affectedRows > 0){
+            console.log(`Employee successfully updated!`)
+        } else {
+            throw new Error(employee.message);
+        };
+    });
+
+    main();
+
+
 }
 
 const viewAllEmployees = async () => {
@@ -156,7 +213,7 @@ const initialPromptHash = {
     viewDepartment: userAddDepartment,
     addPosition: userAddPosition,
     addEmployee: userAddEmployee,
-    // updateEmployee: userUpdateEmployee,
+    updateEmployee: userUpdateEmployee,
     // deleteInformation: deleteInformation,
     // viewBudget: viewBudget,
     exit: process.exit
