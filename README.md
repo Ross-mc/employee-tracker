@@ -20,6 +20,8 @@ A Node.js / MySQL programme for creating and modifying a database which stores i
 
 To install the application, clone this reposity and run command ```npm i```
 
+The database can be created using the MySQL schema in ```schema.sql```. Seed data is available in ```seed.sql``` if required.
+
 ## Usage Information
 
 To run the application, run ```npm start [password]``` or ```node index.js [password]```
