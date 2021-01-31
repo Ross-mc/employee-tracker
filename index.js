@@ -6,8 +6,6 @@ const Department = require('./lib/department');
 const Position = require('./lib/position');
 const Prompts = require('./lib/prompts');
 
-console.log(Prompts.initialPrompt)
-
 
 
 const userAddDepartment = async () => {
@@ -43,9 +41,67 @@ const userAddPosition = async () => {
 
         main();
     })
-}
+};
 
+const viewAllEmployees = async () => {
+    try {
+        const allEmployees = await DatabaseQuery.displayEmployees('all');
+        const table = cTable.getTable(allEmployees);
+        console.log(table)
+    } catch(e){
+        console.log(e)
+    };
+};
 
+const viewEmployeesByManager = async () => {
+    const managers = await DatabaseQuery.getManagers();
+    const managerSelectionPrompts = Prompts.employeeBySelectionPrompts('manager')
+    managerSelectionPrompts.choices = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
+    await inquirer
+    .prompt(managerSelectionPrompts)
+    .then(async res => {
+        const firstName = res.manager.split(' ')[0];
+        const lastName = res.manager.split(' ')[1];
+        const managerToFind = managers.find(manager => manager.first_name === firstName && manager.last_name === lastName);
+        const { id } = managerToFind;
+        const result = await DatabaseQuery.displayEmployees('manager', id);
+        const table = cTable.getTable(result);
+        console.log(table)
+    })
+};
+
+const viewEmployeesByDepartment = async () => {
+    const departments = await DatabaseQuery.getDepartments();
+    const departmentSelectionPrompts = Prompts.employeeBySelectionPrompts('department')
+    departmentSelectionPrompts.choices = departments.map(department => department.department_name);
+    await inquirer
+    .prompt(departmentSelectionPrompts)
+    .then(async res => {
+        const result = await DatabaseQuery.displayEmployees('department', res.department);
+        const table = cTable.getTable(result);
+        console.log(table)
+    })
+};
+
+const viewEmployeesByRole = async () => {
+    const roles = await DatabaseQuery.getRoles();
+    const roleSelectionPrompts = Prompts.employeeBySelectionPrompts('role');
+    roleSelectionPrompts.choices = roles.map(role => role.title);
+    await inquirer
+    .prompt(roleSelectionPrompts)
+    .then(async res => {
+        const result = await DatabaseQuery.displayEmployees('role', res.role);
+        const table = cTable.getTable(result);
+        console.log(table)
+    })
+};
+
+const viewEmployeeHash = {
+    viewAll: viewAllEmployees,
+    viewByManager: viewEmployeesByManager,
+    viewByDepartment: viewEmployeesByDepartment,
+    viewByRole: viewEmployeesByRole
+};
 
 const userViewEmployees = async () => {
     let response = '';
@@ -54,63 +110,22 @@ const userViewEmployees = async () => {
     .then(res => {
         response = res.option
     });
-    //to do: add hashmap logic, further program flow through the various queries ***improve choices
-    if (response === 'View all employees') {
-        try {
-            const allEmployees = await DatabaseQuery.displayEmployees('all');
-            const table = cTable.getTable(allEmployees);
-            console.log(table)
-            // console.log(await displayEmployees('all'));
-        } catch(e){
-            console.log(e)
-        };
-    };
 
-    if (response === Prompts.viewEmployeePrompts.choices[1]){
-        const managers = await DatabaseQuery.getManagers();
-        const managerSelectionPrompts = Prompts.employeeBySelectionPrompts('manager')
-        managerSelectionPrompts.choices = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
-        await inquirer
-        .prompt(managerSelectionPrompts)
-        .then(async res => {
-            const firstName = res.manager.split(' ')[0];
-            const lastName = res.manager.split(' ')[1];
-            const managerToFind = managers.find(manager => manager.first_name === firstName && manager.last_name === lastName);
-            const { id } = managerToFind;
-            const result = await DatabaseQuery.displayEmployees('manager', id);
-            const table = cTable.getTable(result);
-            console.log(table)
-        })
-    };
-
-    if (response === Prompts.viewEmployeePrompts.choices[2]){
-        const departments = await DatabaseQuery.getDepartments();
-        const departmentSelectionPrompts = Prompts.employeeBySelectionPrompts('department')
-        departmentSelectionPrompts.choices = departments.map(department => department.department_name);
-        await inquirer
-        .prompt(departmentSelectionPrompts)
-        .then(async res => {
-            const result = await DatabaseQuery.displayEmployees('department', res.department);
-            const table = cTable.getTable(result);
-            console.log(table)
-        })
-    }
-
-    if (response === Prompts.viewEmployeePrompts.choices[3]){
-        const roles = await DatabaseQuery.getRoles();
-        const roleSelectionPrompts = Prompts.employeeBySelectionPrompts('role');
-        roleSelectionPrompts.choices = roles.map(role => role.title);
-        await inquirer
-        .prompt(roleSelectionPrompts)
-        .then(async res => {
-            const result = await DatabaseQuery.displayEmployees('role', res.role);
-            const table = cTable.getTable(result);
-            console.log(table)
-        })
-    }
-
+    const nextProcess = viewEmployeeHash[response]
+    await nextProcess();
     main();
 
+}
+
+const initialPromptHash = {
+    viewEmployees: userViewEmployees,
+    viewDepartment: userAddDepartment,
+    addPosition: userAddPosition,
+    // addEmployee: userAddEmployee,
+    // updateEmployee: userUpdateEmployee,
+    // deleteInformation: deleteInformation,
+    // viewBudget: viewBudget,
+    exit: process.exit
 }
 
 
@@ -118,23 +133,8 @@ const main = () => {
     inquirer
     .prompt(Prompts.initialPrompt)
     .then(res => {
-        if (res.option === Prompts.initialPrompt.choices[0]){
-            userViewEmployees();
-        };
-        if (res.option === Prompts.initialPrompt.choices[1]){
-            userAddDepartment();
-        };
-
-        if (res.option === Prompts.initialPrompt.choices[2]){
-            userAddPosition();
-        }
-
-
-        if (res.option === 'Exit'){
-            process.exit()
-        };
-
-
+        const nextProcess = initialPromptHash[res.option];
+        nextProcess();
     });
 
 
