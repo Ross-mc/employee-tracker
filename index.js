@@ -27,20 +27,13 @@ const viewBudget = async () => {
         main();
     });
     
-}
-
-
+};
 
 const userAddDepartment = async () => {
     await inquirer
     .prompt(Prompts.newDepartmentPrompt)
     .then(async res => {
         const newDepartment = await DatabaseQuery.addDepartment(res.department);
-        if (newDepartment.affectedRows > 0){
-            console.log(`${title} successfully added!`)
-        } else {
-            throw new Error(newDepartment.message);
-        };
         main();
     });
 };
@@ -139,17 +132,13 @@ const userUpdateEmployee = async () => {
                 newValue = res.name;
             })
         };
-
-
         const employeeUpdate = await DatabaseQuery.updateEmployee(columnToUpdate, newValue, employeeId);
-
         if (employeeUpdate.affectedRows > 0){
             console.log(`Employee successfully updated!`)
         } else {
             throw new Error(employee.message);
         };
     });
-
     main();
 };
 
@@ -174,7 +163,6 @@ const deleteInformation = async () => {
             var employees = await DatabaseQuery.getEmployees('all');
             choices = employees.map(employee => `${employee.first_name} ${employee.last_name}`);
         };
-
         await inquirer
         .prompt({
             type: 'list',
@@ -294,7 +282,7 @@ const userViewEmployees = async () => {
 
 const initialPromptHash = {
     viewEmployees: userViewEmployees,
-    viewDepartment: userAddDepartment,
+    addNewDepartment: userAddDepartment,
     addPosition: userAddPosition,
     addEmployee: userAddEmployee,
     updateEmployee: userUpdateEmployee,
