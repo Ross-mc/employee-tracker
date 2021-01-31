@@ -4,6 +4,7 @@ const cTable = require('console.table');
 const DatabaseQuery = require('./lib/query');
 const Department = require('./lib/department');
 const Position = require('./lib/position');
+const Employee = require('./lib/employee')
 const Prompts = require('./lib/prompts');
 
 
@@ -42,6 +43,39 @@ const userAddPosition = async () => {
         main();
     })
 };
+
+const userAddEmployee = async () => {
+    const roles = await DatabaseQuery.getRoles();
+    const roleTitles = roles.map(role => role.title);
+    const managers = await DatabaseQuery.getManagers();
+    const managerNames = managers.map(manager => `${manager.first_name} ${manager.last_name}`);
+    await inquirer
+    .prompt(Prompts.newEmployeePrompts(roleTitles, managerNames))
+    .then(async res => {
+        const { first_name, last_name, roleTitle, managerName } = res;
+
+        const roleToFind = roles.find(role => role.title === roleTitle);
+        const role_id = roleToFind.id;
+
+        const managerToFind = managers.find(manager => `${manager.first_name} ${manager.last_name}` === managerName);
+
+        const newEmployee = new Employee(first_name, last_name, role_id);
+
+        if (managerToFind !== undefined){
+            newEmployee.manager_id = managerToFind.id
+        };
+
+        const employee = await DatabaseQuery.addEmployee(newEmployee);
+
+        if (employee.affectedRows > 0){
+            console.log(`${first_name} ${last_name} successfully added!`)
+        } else {
+            throw new Error(employee.message);
+        };
+
+        main();
+    })
+}
 
 const viewAllEmployees = async () => {
     try {
@@ -121,7 +155,7 @@ const initialPromptHash = {
     viewEmployees: userViewEmployees,
     viewDepartment: userAddDepartment,
     addPosition: userAddPosition,
-    // addEmployee: userAddEmployee,
+    addEmployee: userAddEmployee,
     // updateEmployee: userUpdateEmployee,
     // deleteInformation: deleteInformation,
     // viewBudget: viewBudget,
