@@ -175,12 +175,23 @@ const deleteInformation = async () => {
             value = itemToDelete.id
         });
 
-        const deleted = await DatabaseQuery.deleteRow(table, value);
-        if (deleted.affectedRows > 0){
-            console.log(`Item successfully deleted!`)
-        } else {
-            throw new Error(deleted.message);
-        };
+        await inquirer
+        .prompt({
+            name: 'confirm',
+            type: 'confirm',
+            message: `Are you sure you want to delete?`
+
+        })
+        .then(async res => {
+            if (res.confirm){
+                const deleted = await DatabaseQuery.deleteRow(table, value);
+                if (deleted.affectedRows > 0){
+                    console.log(`Item successfully deleted!`)
+                } else {
+                    throw new Error(deleted.message);
+                };
+            }
+        })
     });
 
     main();
