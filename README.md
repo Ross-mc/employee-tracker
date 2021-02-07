@@ -9,7 +9,7 @@
 5. [Testing Information](##testing-information)
 6. [Demonstration](##demonstration)
 7. [License](##license)
-8. [Questions](##questions])
+8. [Questions](##questions)
 
 
 ## Project Description
